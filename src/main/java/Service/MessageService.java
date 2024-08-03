@@ -37,4 +37,14 @@ public class MessageService {
     public Message addMessage(Message Message) {
         return messageDAO.insertMessage(Message);
     }
+
+    /**
+     * Use the MessageDAO to get a message given its message_id.
+     *
+     * @param Message an Message object.
+     * @return The identified Message if it is found in the database.
+     */
+    public Message getMessage(int messageId) {
+        return messageDAO.findMessage(messageId);
+    }
 }
