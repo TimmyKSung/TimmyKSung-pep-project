@@ -37,6 +37,9 @@ public class SocialMediaController {
         app.post("/messages", this::postNewMessageHandler);
         app.get("/messages", this::getAllMessageHandler);
         app.get("/messages/{message_id}", this::getMessageHandler);
+        app.delete("/messages/{message_id}", this::deleteMessageHandler);
+        app.patch("/messages/{message_id}", this::patchMessageHandler);
+        app.get("/accounts/{account_id}/messages", this::getUserMessagesHandler);
 
         return app;
     }
@@ -94,10 +97,8 @@ public class SocialMediaController {
 
     /**
      * Handler to create a new message.
-     * The creation of the message will be successful if and only if the message_text is not blank, 
-     * is not over 255 characters, and posted_by refers to a real, existing user. If successful, 
-     * the response body should contain a JSON of the message, including its message_id. The response 
-     * status should be 200, which is the default. The new message should be persisted to the database.
+     * If successful, the response body should contain a JSON of the message, including its message_id. The 
+     * response status should be 200, which is the default. The new message should be persisted to the database.
      * If the creation of the message is not successful, the response status should be 400. (Client error)
      * @param ctx the context object handles information HTTP requests and generates responses within Javalin.
      * @throws JsonProcessingException will be thrown if there is an issue converting JSON into an object.
@@ -140,6 +141,61 @@ public class SocialMediaController {
         if (gotMessage != null) {
             ctx.json(gotMessage);
         }
+        ctx.status(200);
+    }
+
+    /**
+     * Handler to delete a message given its message_id.
+     * The deletion of an existing message should remove an existing message from the database. If 
+     * the message existed, the response body should contain the now-deleted message. The response 
+     * status should be 200, which is the default.
+     * If the message did not exist, the response status should be 200, but the response body should 
+     * be empty. This is because the DELETE verb is intended to be idempotent, ie, multiple calls to 
+     * the DELETE endpoint should respond with the same type of response.
+     * @param ctx the context object handles information HTTP requests and generates responses within Javalin.
+     */
+    private void deleteMessageHandler(Context ctx) {
+        int messageId = Integer.parseInt(ctx.pathParam("message_id"));
+        Message deletedMessage = messageService.deleteMessage(messageId);
+        if (deletedMessage != null) {
+            ctx.json(deletedMessage);
+        }
+        ctx.status(200);
+    }
+
+    /**
+     * Handler to update a message given its message_id.
+     * The request body should contain a new message_text values to replace the message identified by message_id.
+     * If the update is successful, the response body should contain the full updated message (including message_id, 
+     * posted_by, message_text, and time_posted_epoch), and the response status should be 200, which is the default. 
+     * The message existing on the database should have the updated message_text.
+     * 
+     * If the update of the message is not successful for any reason, the response status should be 400. (Client error)
+     */
+    private void patchMessageHandler(Context ctx) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        int messageId = Integer.parseInt(ctx.pathParam("message_id"));
+        Message message = mapper.readValue(ctx.body(), Message.class);
+        Message updatedMessage = messageService.patchMessage(messageService.getMessage(messageId), message);
+        if(updatedMessage != null){
+            ctx.json(mapper.writeValueAsString(updatedMessage));
+            ctx.status(200);
+        }else{
+            ctx.status(400);
+        }
+    }
+
+    /**
+     * Handler to get all messages posted by a particular user
+     * The response body should contain a JSON representation of a list containing all messages posted by a particular user, 
+     * which is retrieved from the database. It is expected for the list to simply be empty if there are no messages. The 
+     * response status should always be 200, which is the default
+     * @param ctx the context object handles information HTTP requests and generates responses within Javalin.
+     */
+    private void getUserMessagesHandler(Context ctx) {
+        int accountId = Integer.parseInt(ctx.pathParam("account_id"));
+        List<Message> messages = messageService.getUserMessages(accountId);
+        ctx.json(messages);
         ctx.status(200);
     }
 
