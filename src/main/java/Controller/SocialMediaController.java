@@ -53,7 +53,7 @@ public class SocialMediaController {
     }
 
     /**
-     * Handler to post/register a new account.
+     * Handler to post/register a new account. 
      * If all the conditions are met, the response body should contain a JSON of the Account, 
      * including its account_id. The response status should be 200 OK, which is the default. 
      * The new account should be persisted to the database.
